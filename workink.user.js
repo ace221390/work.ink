@@ -3,7 +3,7 @@
 // @namespace    https://example.local/
 // @version      1.0
 // @description  From my-site.co/refresh?url=... -> go to work.ink, wait while title is "Just a moment", then navigate to the final url.
-// @match        https://my-site.co/refresh*
+// @match        https://workink.vercel.app/refresh*
 // @match        https://work.ink/*
 // @grant        GM_setValue
 // @grant        GM_getValue
