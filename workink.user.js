@@ -67,12 +67,8 @@
         }
     }
 
-    // --- Auto-update checker (runs at most once per 24h) ---
     const UPDATE_RAW_URL = 'https://github.com/ace221390/work.ink/raw/refs/heads/main/workink.user.js';
-    const UPDATE_CHECK_KEY = 'workink_update_last_check';
-    const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
     const LOCAL_VERSION = (function() {
-        // parse @version from header of this running script
         try {
             const meta = /@version\s+([^\s]+)/.exec(`@version      1.0`);
             if (meta && meta[1]) return meta[1].trim();
@@ -113,36 +109,23 @@
 
     async function checkForUpdate() {
         try {
-            const last = await gmGet(UPDATE_CHECK_KEY, 0).catch(()=>0);
-            const now = Date.now();
-            if (now - last < UPDATE_CHECK_INTERVAL_MS) return;
-            // attempt to fetch remote userscript
             let remoteText;
             try {
                 remoteText = await gmXhrGetText(UPDATE_RAW_URL);
             } catch (e) {
-                // can't fetch; leave last check time unchanged so we'll try later
                 return;
             }
-            // extract version from remote header
             const m = /@version\s+([^\s\*]+)/i.exec(remoteText);
-            if (!m) {
-                await gmSet(UPDATE_CHECK_KEY, now).catch(()=>{});
-                return;
-            }
+            if (!m) return;
             const remoteVersion = m[1].trim();
-            // simple numeric/lexical compare: if different and not equal to local, prompt update
             if (remoteVersion && remoteVersion !== LOCAL_VERSION) {
-                // open the raw URL to trigger userscript manager install/update prompt
                 try { window.open(UPDATE_RAW_URL, '_blank'); } catch (e) {}
             }
-            await gmSet(UPDATE_CHECK_KEY, now).catch(()=>{});
         } catch (e) {
             // ignore
         }
     }
 
-    // start update check but do not block script behavior
     checkForUpdate().catch(()=>{});
 
     function _createRedirectNotice(dest) {
