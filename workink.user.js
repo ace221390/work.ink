@@ -16,7 +16,7 @@
 (async function () {
     'use strict';
 
-   
+
     function gmSet(key, value) {
         if (typeof GM_setValue === 'function') {
             try { GM_setValue(key, value); return Promise.resolve(); }
@@ -59,7 +59,7 @@
             const params = new URLSearchParams(search);
             let u = params.get('url');
             if (!u) return null;
-            
+
             try { u = decodeURIComponent(u); } catch (e) {/* ignore */}
             return u;
         } catch (e) {
@@ -67,14 +67,14 @@
         }
     }
 
-    if (location.hostname === 'my-site.co' && location.pathname.startsWith('/refresh')) {
+    if (location.hostname === 'workink.vercel.app' && location.pathname.startsWith('/refresh')) {
         const dest = extractUrlParamFromSearch(location.search);
         if (dest) {
             try {
-                
+
                 await gmSet(STORAGE_KEY, dest);
             } catch (err) {
-                
+
                 console.warn('GM storage failed, falling back to query param:', err);
                 const encoded = encodeURIComponent(dest);
                 location.href = 'https://work.ink/?__dest=' + encoded;
@@ -90,7 +90,7 @@
     }
 
     if (location.hostname === 'work.ink') {
-        
+
         let dest = null;
         try {
             dest = await gmGet(STORAGE_KEY, null);
@@ -99,7 +99,7 @@
             dest = null;
         }
 
-        
+
         if (!dest) {
             try {
                 const params = new URLSearchParams(location.search);
@@ -109,46 +109,46 @@
         }
 
         if (!dest) {
-           
+
             return;
         }
 
-        
+
         try {
             const parsed = new URL(dest, location.href);
             dest = parsed.href;
         } catch (e) {
-            
+
             console.error('Destination URL looks invalid:', dest, e);
             await gmDelete(STORAGE_KEY).catch(()=>{});
             return;
         }
 
-        
+
         async function finalRedirect() {
             try { await gmDelete(STORAGE_KEY); } catch (e) {/* ignore */}
-            
+
             await new Promise(resolve => setTimeout(resolve, 2000));
-            
+
             window.location.href = dest;
         }
 
-        
+
         function findAgreeButton() {
             try {
-                
+
                 let candidates = Array.from(document.querySelectorAll('button[mode="primary"][size="large"], button[mode="primary"], button[size="large"], button'));
                 for (const b of candidates) {
                     try {
-                        
+
                         const span = b.querySelector('span');
                         if (span && (span.textContent || '').trim().toUpperCase() === 'AGREE') return b;
-                        
+
                         if ((b.textContent || '').trim().toUpperCase() === 'AGREE') return b;
                     } catch (e) { /* ignore per-element errors */ }
                 }
 
-               
+
                 const spans = Array.from(document.querySelectorAll('span'));
                 for (const s of spans) {
                     try {
@@ -165,7 +165,7 @@
             }
         }
 
-        
+
         function performClick(el) {
             if (!el) return;
             try {
@@ -175,13 +175,13 @@
                 el.focus && el.focus();
             } catch (e) { /* ignore */ }
 
-            
+
             try {
                 el.click();
                 return;
             } catch (e) { /* fallthrough to dispatch events */ }
 
-            
+
             try {
                 const rect = el.getBoundingClientRect();
                 const cx = rect.left + rect.width / 2;
@@ -193,7 +193,7 @@
                 el.dispatchEvent(new MouseEvent('mouseup', evInit));
                 el.dispatchEvent(new MouseEvent('click', evInit));
             } catch (e) {
-               
+
                 try {
                     el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
                     el.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', bubbles: true }));
@@ -201,19 +201,19 @@
             }
         }
 
-        
+
         async function clickAgreeIfPresentThenRedirect() {
             const SEARCH_TIMEOUT_MS = 5000;
             const POLL_INTERVAL_MS = 250;
             let found = findAgreeButton();
             if (found) {
                 try { performClick(found); } catch (e) { console.warn('click error', e); }
-                
+
                 finalRedirect();
                 return;
             }
 
-            
+
             let resolved = false;
             let mo;
             const stop = () => {
@@ -221,7 +221,7 @@
                 resolved = true;
             };
 
-            
+
             try {
                 mo = new MutationObserver(() => {
                     if (resolved) return;
@@ -234,10 +234,10 @@
                 });
                 mo.observe(document.documentElement || document.body || document, { childList: true, subtree: true });
             } catch (e) {
-               
+
             }
 
-            
+
             const start = Date.now();
             while (!resolved && (Date.now() - start) < SEARCH_TIMEOUT_MS) {
                 await new Promise(r => setTimeout(r, POLL_INTERVAL_MS));
@@ -250,21 +250,21 @@
                 }
             }
 
-            
+
             stop();
             finalRedirect();
         }
 
-        
+
         const TITLE_BLOCKING_RE = /Just a/i;
 
         function titleIndicatesWaiting(t) {
             return TITLE_BLOCKING_RE.test(t || '');
         }
 
-       
+
         if (!titleIndicatesWaiting(document.title)) {
-            
+
             clickAgreeIfPresentThenRedirect();
             return;
         }
@@ -280,19 +280,19 @@
             }
         }
 
-        
+
         const titleEl = document.querySelector('title');
         if (titleEl) {
             const mo = new MutationObserver(() => tryMaybeRedirect());
             mo.observe(titleEl, { childList: true, subtree: true });
         }
 
-       
+
         const pollInterval = setInterval(() => {
             tryMaybeRedirect();
         }, 500);
 
-        
+
         const TIMEOUT_MS = 120000;
         setTimeout(() => {
             if (!redirected) {
@@ -302,7 +302,7 @@
             }
         }, TIMEOUT_MS);
 
-        
+
         return;
     }
 
